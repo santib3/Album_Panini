@@ -1,0 +1,312 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#7a0019">
+<title>Álbum Mundial Panini - Tracker Pro</title>
+<style>
+:root {
+  --bg:#f7f1e7; --panel:#fffaf0; --ink:#201318; --muted:#725d62; --brand:#8b001e;
+  --line:#eadcc4; --missing:#d6d3d1; --owned:#16a34a; --repeat:#dc2626;
+  --chip:#fff; --shadow:0 10px 24px rgba(59,23,31,.12);
+}
+* { box-sizing:border-box; }
+body { margin:0; font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif; background:linear-gradient(180deg,#fff7e6,var(--bg)); color:var(--ink); }
+header { position:sticky; top:0; z-index:20; background:rgba(255,250,240,.96); backdrop-filter:blur(12px); border-bottom:1px solid var(--line); padding:12px; }
+h1 { font-size:20px; margin:0 0 8px; display:flex; align-items:center; gap:8px; }
+.app, main { max-width:1240px; margin:auto; }
+.stats,.actions,.legend { display:flex; gap:8px; flex-wrap:wrap; align-items:center; }
+.stats { margin:8px 0; }
+.pill,input,select,button { border:1px solid var(--line); border-radius:999px; background:var(--chip); padding:9px 11px; font-size:14px; }
+button { cursor:pointer; }
+button:active,.sticker:active { transform:scale(.97); }
+input { min-width:165px; flex:1; }
+.progressWrap { height:10px; background:#eadcc4; border-radius:999px; overflow:hidden; margin-top:8px; }
+#progressBar { height:100%; width:0%; background:var(--brand); }
+.navMenu { display:flex; gap:7px; overflow-x:auto; padding:10px 0 2px; scrollbar-width:thin; }
+.navMenu button { white-space:nowrap; flex:0 0 auto; padding:8px 10px; }
+.navMenu button.active { background:var(--brand); color:white; border-color:var(--brand); }
+main { padding:14px; }
+.card { background:var(--panel); border:1px solid var(--line); border-radius:18px; box-shadow:var(--shadow); padding:14px; margin-bottom:14px; }
+.dot { display:inline-block; width:11px; height:11px; border-radius:999px; margin-right:6px; }
+.teamHead { display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:12px; }
+.teamTitle { font-size:19px; font-weight:900; }
+.teamTitle span { font-size:25px; margin-right:6px; }
+.grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(74px,1fr)); gap:9px; }
+.sticker { min-height:82px; border:0; border-radius:14px; font-weight:900; display:flex; flex-direction:column; align-items:center; justify-content:center; box-shadow:0 3px 8px rgba(0,0,0,.12); }
+.sticker small { font-size:10px; margin-top:5px; font-weight:700; opacity:.86; }
+.missing { background:var(--missing); color:#302a2a; }
+.owned { background:var(--owned); color:white; }
+.repeat { background:var(--repeat); color:white; }
+.teamList { display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:10px; }
+.teamMini { background:white; border:1px solid var(--line); border-radius:14px; padding:10px; }
+.teamMini button { margin-top:8px; width:100%; }
+.meter { height:7px; background:#eee0ca; border-radius:999px; overflow:hidden; margin-top:7px; }
+.meter > div { height:100%; background:var(--brand); }
+dialog { border:0; border-radius:20px; padding:0; max-width:640px; width:calc(100% - 24px); box-shadow:0 18px 80px rgba(0,0,0,.32); }
+.dialogBox { padding:18px; background:#fffaf0; }
+textarea { width:100%; min-height:180px; border:1px solid var(--line); border-radius:14px; padding:10px; font-family:ui-monospace,Menlo,monospace; }
+.muted { color:var(--muted); font-size:13px; }
+@media (max-width:640px) {
+  .grid { grid-template-columns:repeat(auto-fill,minmax(64px,1fr)); }
+  .sticker { min-height:74px; }
+  h1 { font-size:18px; }
+  .actions button, .actions select { font-size:13px; padding:8px 9px; }
+}
+</style>
+</head>
+<body>
+<header>
+  <div class="app">
+    <h1>🏆 Álbum Mundial Panini — Tracker Pro</h1>
+    <div class="stats">
+      <span class="pill">Total: <b id="total">0</b></span>
+      <span class="pill">Tengo: <b id="owned">0</b></span>
+      <span class="pill">Faltan: <b id="missing">0</b></span>
+      <span class="pill">Repetidas: <b id="repeat">0</b></span>
+      <span class="pill">Progreso: <b id="progress">0%</b></span>
+    </div>
+    <div class="progressWrap"><div id="progressBar"></div></div>
+    <div class="actions" style="margin-top:10px">
+      <input id="search" placeholder="Buscar: COL 1, Colombia, FWC...">
+      <select id="statusFilter">
+        <option value="all">Todas</option>
+        <option value="missing">Faltantes</option>
+        <option value="owned">Las tengo</option>
+        <option value="repeat">Repetidas</option>
+      </select>
+      <button id="exchangeBtn">Modo intercambio</button>
+      <button id="summaryBtn">Resumen</button>
+      <button id="exportBtn">Exportar</button>
+      <button id="importBtn">Importar</button>
+      <button id="resetBtn">Reset</button>
+    </div>
+    <nav class="navMenu" id="navMenu" aria-label="Menú de selecciones"></nav>
+  </div>
+</header>
+
+<main>
+  <section class="card">
+    <div class="legend">
+      <span class="pill"><span class="dot" style="background:var(--missing)"></span>Gris: no la tengo</span>
+      <span class="pill"><span class="dot" style="background:var(--owned)"></span>Verde: la tengo</span>
+      <span class="pill"><span class="dot" style="background:var(--repeat)"></span>Rojo: repetida</span>
+    </div>
+    <p class="muted">Orden actualizado según tu álbum: FWC 1–19 y cada selección 1–20. Toca una lámina para cambiar gris → verde → rojo → gris.</p>
+  </section>
+
+  <section class="card">
+    <div id="albumView"></div>
+  </section>
+
+  <section class="card">
+    <h2 style="margin:0 0 10px;font-size:18px">Progreso por sección</h2>
+    <div id="teamList" class="teamList"></div>
+  </section>
+</main>
+
+<dialog id="modal">
+  <div class="dialogBox">
+    <h3 id="modalTitle">Datos</h3>
+    <p class="muted" id="modalHelp"></p>
+    <textarea id="modalText"></textarea>
+    <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">
+      <button id="copyBtn">Copiar</button>
+      <button id="closeBtn">Cerrar</button>
+      <button id="saveImportBtn">Guardar importación</button>
+    </div>
+  </div>
+</dialog>
+
+<script>
+(function(){
+const CONFIG = {"sections": [{"code": "FWC", "name": "FIFA World Cup", "flag": "🏆", "count": 19}, {"code": "MEX", "name": "México", "flag": "🇲🇽", "count": 20}, {"code": "RSA", "name": "Sudáfrica", "flag": "🇿🇦", "count": 20}, {"code": "KOR", "name": "Corea del Sur", "flag": "🇰🇷", "count": 20}, {"code": "CZE", "name": "República Checa", "flag": "🇨🇿", "count": 20}, {"code": "CAN", "name": "Canadá", "flag": "🇨🇦", "count": 20}, {"code": "BIH", "name": "Bosnia y Herzegovina", "flag": "🇧🇦", "count": 20}, {"code": "QAT", "name": "Catar", "flag": "🇶🇦", "count": 20}, {"code": "SUI", "name": "Suiza", "flag": "🇨🇭", "count": 20}, {"code": "BRA", "name": "Brasil", "flag": "🇧🇷", "count": 20}, {"code": "MAR", "name": "Marruecos", "flag": "🇲🇦", "count": 20}, {"code": "HAI", "name": "Haití", "flag": "🇭🇹", "count": 20}, {"code": "SCO", "name": "Escocia", "flag": "🏴", "count": 20}, {"code": "USA", "name": "Estados Unidos", "flag": "🇺🇸", "count": 20}, {"code": "PAR", "name": "Paraguay", "flag": "🇵🇾", "count": 20}, {"code": "AUS", "name": "Australia", "flag": "🇦🇺", "count": 20}, {"code": "TUR", "name": "Turquía", "flag": "🇹🇷", "count": 20}, {"code": "GER", "name": "Alemania", "flag": "🇩🇪", "count": 20}, {"code": "CUW", "name": "Curazao", "flag": "🇨🇼", "count": 20}, {"code": "CIV", "name": "Costa de Marfil", "flag": "🇨🇮", "count": 20}, {"code": "ECU", "name": "Ecuador", "flag": "🇪🇨", "count": 20}, {"code": "NED", "name": "Países Bajos", "flag": "🇳🇱", "count": 20}, {"code": "JPN", "name": "Japón", "flag": "🇯🇵", "count": 20}, {"code": "SWE", "name": "Suecia", "flag": "🇸🇪", "count": 20}, {"code": "TUN", "name": "Túnez", "flag": "🇹🇳", "count": 20}, {"code": "BEL", "name": "Bélgica", "flag": "🇧🇪", "count": 20}, {"code": "EGY", "name": "Egipto", "flag": "🇪🇬", "count": 20}, {"code": "IRN", "name": "Irán", "flag": "🇮🇷", "count": 20}, {"code": "NZL", "name": "Nueva Zelanda", "flag": "🇳🇿", "count": 20}, {"code": "ESP", "name": "España", "flag": "🇪🇸", "count": 20}, {"code": "CPV", "name": "Cabo Verde", "flag": "🇨🇻", "count": 20}, {"code": "KSA", "name": "Arabia Saudita", "flag": "🇸🇦", "count": 20}, {"code": "URU", "name": "Uruguay", "flag": "🇺🇾", "count": 20}, {"code": "FRA", "name": "Francia", "flag": "🇫🇷", "count": 20}, {"code": "SEN", "name": "Senegal", "flag": "🇸🇳", "count": 20}, {"code": "IRQ", "name": "Irak", "flag": "🇮🇶", "count": 20}, {"code": "NOR", "name": "Noruega", "flag": "🇳🇴", "count": 20}, {"code": "ARG", "name": "Argentina", "flag": "🇦🇷", "count": 20}, {"code": "ALG", "name": "Argelia", "flag": "🇩🇿", "count": 20}, {"code": "AUT", "name": "Austria", "flag": "🇦🇹", "count": 20}, {"code": "JOR", "name": "Jordania", "flag": "🇯🇴", "count": 20}, {"code": "POR", "name": "Portugal", "flag": "🇵🇹", "count": 20}, {"code": "COD", "name": "RD Congo", "flag": "🇨🇩", "count": 20}, {"code": "UZB", "name": "Uzbekistán", "flag": "🇺🇿", "count": 20}, {"code": "COL", "name": "Colombia", "flag": "🇨🇴", "count": 20}, {"code": "ENG", "name": "Inglaterra", "flag": "🏴", "count": 20}, {"code": "CRO", "name": "Croacia", "flag": "🇭🇷", "count": 20}, {"code": "GHA", "name": "Ghana", "flag": "🇬🇭", "count": 20}, {"code": "PAN", "name": "Panamá", "flag": "🇵🇦", "count": 20}]};
+const KEY = "panini_wc_tracker_pro_custom_order_v2";
+const OLD_KEYS = ["panini_wc_2026_tracker_pro_v1"];
+const STATES = ["missing","owned","repeat"];
+const LABEL = {missing:"No la tengo", owned:"La tengo", repeat:"Repetida"};
+
+let album = {};
+try {
+  album = JSON.parse(localStorage.getItem(KEY) || "{}");
+  if(Object.keys(album).length === 0) {
+    for(const oldKey of OLD_KEYS) {
+      const old = JSON.parse(localStorage.getItem(oldKey) || "{}");
+      if(Object.keys(old).length) { album = old; break; }
+    }
+  }
+} catch(e) { album = {}; }
+
+let active = "FWC";
+let exchangeMode = false;
+
+const sections = CONFIG.sections;
+const allStickers = [];
+sections.forEach(sec => {
+  for(let i=1;i<=sec.count;i++) {
+    allStickers.push({ id: sec.code + " " + i, code: sec.code, num:i, section:sec.name, flag:sec.flag });
+  }
+});
+
+function state(id) { return album[id] || "missing"; }
+function save() { localStorage.setItem(KEY, JSON.stringify(album)); }
+function pct(done,total) { return total ? Math.round(done*100/total) : 0; }
+
+function counts(items=allStickers){
+  let owned=0, repeat=0;
+  items.forEach(s => { if(state(s.id)==="owned") owned++; if(state(s.id)==="repeat") repeat++; });
+  return {owned, repeat, missing: items.length-owned-repeat, collected:owned+repeat, total:items.length};
+}
+
+function updateGlobal(){
+  const c = counts();
+  document.getElementById("total").textContent = c.total;
+  document.getElementById("owned").textContent = c.owned;
+  document.getElementById("repeat").textContent = c.repeat;
+  document.getElementById("missing").textContent = c.missing;
+  const p = pct(c.collected,c.total);
+  document.getElementById("progress").textContent = p + "%";
+  document.getElementById("progressBar").style.width = p + "%";
+}
+
+function renderNav(){
+  const nav = document.getElementById("navMenu");
+  nav.innerHTML = "";
+  const all = document.createElement("button");
+  all.textContent = "🌎 Todas";
+  all.className = active==="ALL" ? "active" : "";
+  all.onclick = () => { active = "ALL"; render(); };
+  nav.appendChild(all);
+
+  sections.forEach(sec => {
+    const b = document.createElement("button");
+    b.textContent = `${sec.flag} ${sec.code}`;
+    b.title = sec.name;
+    b.className = active===sec.code ? "active" : "";
+    b.onclick = () => { active = sec.code; render(); };
+    nav.appendChild(b);
+  });
+}
+
+function filteredStickers(){
+  const q = document.getElementById("search").value.trim().toLowerCase();
+  const f = document.getElementById("statusFilter").value;
+  return allStickers.filter(s => {
+    if(active !== "ALL" && s.code !== active) return false;
+    if(q && !(s.id.toLowerCase().includes(q) || s.section.toLowerCase().includes(q) || s.code.toLowerCase().includes(q))) return false;
+    if(f !== "all" && state(s.id) !== f) return false;
+    if(exchangeMode && state(s.id) !== "repeat") return false;
+    return true;
+  });
+}
+
+function renderAlbum(){
+  const view = document.getElementById("albumView");
+  const items = filteredStickers();
+  const section = active === "ALL" ? {name: exchangeMode ? "Repetidas para intercambio" : "Todas las láminas", flag:"🌎", code:"ALL"} : sections.find(x=>x.code===active);
+  const countItems = active==="ALL" ? allStickers : allStickers.filter(s=>s.code===active);
+  const c = counts(countItems);
+  view.innerHTML = `
+    <div class="teamHead">
+      <div>
+        <div class="teamTitle"><span>${section.flag}</span>${section.name} <small class="muted">(${section.code})</small></div>
+        <div class="muted">Completado: ${c.collected}/${c.total} · Faltan: ${c.missing} · Repetidas: ${c.repeat}</div>
+      </div>
+      <button id="markSectionOwned">Marcar sección completa</button>
+    </div>
+    <div class="grid" id="grid"></div>
+  `;
+  document.getElementById("markSectionOwned").onclick = () => {
+    const target = active==="ALL" ? allStickers : allStickers.filter(s=>s.code===active);
+    if(confirm("¿Marcar esta sección completa en verde?")) {
+      target.forEach(s => album[s.id] = "owned");
+      save(); render();
+    }
+  };
+  const grid = document.getElementById("grid");
+  if(!items.length) {
+    grid.innerHTML = `<p class="muted">No hay láminas con ese filtro.</p>`;
+    return;
+  }
+  items.forEach(s => {
+    const st = state(s.id);
+    const b = document.createElement("button");
+    b.type = "button";
+    b.className = "sticker " + st;
+    b.innerHTML = `<span>${s.id}</span><small>${LABEL[st]}</small>`;
+    b.onclick = () => {
+      const now = state(s.id);
+      const next = STATES[(STATES.indexOf(now)+1)%STATES.length];
+      if(next==="missing") delete album[s.id]; else album[s.id] = next;
+      save(); render();
+    };
+    grid.appendChild(b);
+  });
+}
+
+function renderTeamList(){
+  const box = document.getElementById("teamList");
+  box.innerHTML = "";
+  sections.forEach(sec => {
+    const items = allStickers.filter(s=>s.code===sec.code);
+    const c = counts(items); const p = pct(c.collected,c.total);
+    const div = document.createElement("div");
+    div.className = "teamMini";
+    div.innerHTML = `
+      <b>${sec.flag} ${sec.name}</b><br>
+      <span class="muted">${sec.code} · ${c.collected}/${c.total} · faltan ${c.missing} · rep ${c.repeat}</span>
+      <div class="meter"><div style="width:${p}%"></div></div>
+      <button>Ir a ${sec.code}</button>
+    `;
+    div.querySelector("button").onclick = () => { active = sec.code; render(); window.scrollTo({top:0, behavior:"smooth"}); };
+    box.appendChild(div);
+  });
+}
+
+function render(){
+  updateGlobal(); renderNav(); renderAlbum(); renderTeamList();
+  document.getElementById("exchangeBtn").textContent = exchangeMode ? "Salir intercambio" : "Modo intercambio";
+}
+
+function openModal(title, help, text, canSave=false){
+  document.getElementById("modalTitle").textContent = title;
+  document.getElementById("modalHelp").textContent = help;
+  document.getElementById("modalText").value = text;
+  document.getElementById("saveImportBtn").style.display = canSave ? "inline-block" : "none";
+  document.getElementById("copyBtn").style.display = canSave ? "none" : "inline-block";
+  document.getElementById("modal").showModal();
+}
+
+document.getElementById("search").addEventListener("input", render);
+document.getElementById("statusFilter").addEventListener("change", render);
+document.getElementById("exchangeBtn").onclick = () => { exchangeMode = !exchangeMode; render(); };
+document.getElementById("summaryBtn").onclick = () => {
+  const missing = allStickers.filter(s=>state(s.id)==="missing").map(s=>s.id);
+  const repeated = allStickers.filter(s=>state(s.id)==="repeat").map(s=>s.id);
+  const text = "FALTANTES ("+missing.length+")\n"+missing.join(", ")+"\n\nREPETIDAS ("+repeated.length+")\n"+repeated.join(", ");
+  openModal("Resumen para intercambiar", "Copia esta lista para enviar a amigos o grupos de intercambio.", text);
+};
+document.getElementById("exportBtn").onclick = () => openModal("Exportar progreso", "Guarda este JSON para restaurarlo en otro dispositivo.", JSON.stringify({version:2, savedAt:new Date().toISOString(), album}, null, 2));
+document.getElementById("importBtn").onclick = () => openModal("Importar progreso", "Pega aquí el JSON exportado desde esta app.", "", true);
+document.getElementById("saveImportBtn").onclick = () => {
+  try {
+    const data = JSON.parse(document.getElementById("modalText").value || "{}");
+    album = data.album || data;
+    save(); document.getElementById("modal").close(); render();
+  } catch(e) { alert("JSON inválido"); }
+};
+document.getElementById("copyBtn").onclick = async () => {
+  const t = document.getElementById("modalText").value;
+  try { await navigator.clipboard.writeText(t); alert("Copiado"); }
+  catch(e) { document.getElementById("modalText").select(); document.execCommand("copy"); alert("Copiado"); }
+};
+document.getElementById("closeBtn").onclick = () => document.getElementById("modal").close();
+document.getElementById("resetBtn").onclick = () => {
+  if(confirm("¿Borrar todo el progreso guardado?")) { album={}; save(); render(); }
+};
+render();
+})();
+</script>
+</body>
+</html>
